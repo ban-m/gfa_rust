@@ -395,7 +395,7 @@ impl Alignment {
                 }
             }
             Some(Alignment::Cigar(Cigar { ops }))
-        } else if seq.contains(",") {
+        } else if seq.contains(',') {
             let inner: Vec<i32> = seq.split(",").filter_map(|x| x.parse().ok()).collect();
             Some(Alignment::Trace(Trace { inner }))
         } else {
