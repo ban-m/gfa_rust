@@ -117,7 +117,10 @@ impl Segment {
             None
         } else {
             let sid = line[0].to_string();
-            let slen: u64 = line[1].parse().unwrap();
+            let slen: u64 = match line[1].parse() {
+                Ok(res) => res,
+                Err(res) => panic!("{:?}\t{:?}", res, line),
+            };
             let sequence = if line[2] == "*" {
                 None
             } else {
@@ -440,9 +443,13 @@ impl std::fmt::Display for GFA {
 
 impl std::fmt::Display for Record {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let tags: Vec<_> = self.tags.iter().map(|t| format!("{}", t)).collect();
-        let tags = tags.join("\t");
-        write!(f, "{}\t{}", self.content, tags)
+        if self.tags.is_empty() {
+            write!(f, "{}", self.content)
+        } else {
+            let tags: Vec<_> = self.tags.iter().map(|t| format!("{}", t)).collect();
+            let tags = tags.join("\t");
+            write!(f, "{}\t{}", self.content, tags)
+        }
     }
 }
 
@@ -541,7 +548,7 @@ impl std::fmt::Display for UnorderedGroup {
             None => write!(f, "U\t*\t")?,
         };
         let ids: Vec<_> = self.ids.iter().map(|id| format!("{}", id)).collect();
-        write!(f, "{}", ids.join("\t"))
+        write!(f, "{}", ids.join(" "))
     }
 }
 impl std::fmt::Display for OrderedGroup {
@@ -551,7 +558,7 @@ impl std::fmt::Display for OrderedGroup {
             None => write!(f, "O\t*\t")?,
         }
         let ids: Vec<_> = self.ids.iter().map(|id| format!("{}", id)).collect();
-        write!(f, "{}", ids.join("\t"))
+        write!(f, "{}", ids.join(" "))
     }
 }
 impl std::fmt::Display for RefID {
