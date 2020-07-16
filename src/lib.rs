@@ -26,7 +26,7 @@ pub struct Record {
 
 impl Record {
     pub fn from_line(line: &str) -> Option<Self> {
-        let line: Vec<&str> = line.split_whitespace().collect();
+        let line: Vec<&str> = line.split("\t").collect();
         match line[0] {
             "H" => Header::new(&line[1..]).map(|(header, tags)| {
                 let content = Content::Header(header);
@@ -88,11 +88,19 @@ impl Header {
             }
             ["VN:Z:2.0", rest @ ..] => (Some("VN:Z:2.0".to_string()), None, rest),
             [x, rest @ ..] if x.starts_with("TS:i:") => (None, Some(x.to_string()), rest),
-            [rest @ ..] => (None, None, rest),
+            x => (None, None, x),
         };
         let tags = to_tags(rest);
         let header = Self { version, trace };
         Some((header, tags))
+    }
+}
+impl std::default::Default for Header {
+    fn default() -> Self {
+        Self {
+            version: Some("VN:Z:2.0".to_string()),
+            trace: None,
+        }
     }
 }
 
@@ -104,7 +112,7 @@ fn to_tags(tags: &[&str]) -> Vec<SamTag> {
         .collect()
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct Segment {
     pub sid: String,
     pub slen: u64,
@@ -112,6 +120,14 @@ pub struct Segment {
 }
 
 impl Segment {
+    pub fn from(sid: String, slen: usize, sequence: Option<String>) -> Self {
+        let slen = slen as u64;
+        Self {
+            sid,
+            slen,
+            sequence,
+        }
+    }
     pub fn new(line: &[&str]) -> Option<(Self, Vec<SamTag>)> {
         if line.len() < 3 {
             None
@@ -223,6 +239,27 @@ impl Edge {
             Some((edge, tags))
         }
     }
+    pub fn from(
+        eid: Option<String>,
+        sid1: RefID,
+        sid2: RefID,
+        beg1: Position,
+        end1: Position,
+        beg2: Position,
+        end2: Position,
+        alignment: Option<Alignment>,
+    ) -> Self {
+        Self {
+            eid,
+            sid1,
+            sid2,
+            beg1,
+            end1,
+            beg2,
+            end2,
+            alignment,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -270,10 +307,10 @@ pub enum Group {
     Path(OrderedGroup),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct UnorderedGroup {
     pub uid: Option<String>,
-    pub ids: Vec<RefID>,
+    pub ids: Vec<String>,
 }
 
 impl UnorderedGroup {
@@ -286,11 +323,13 @@ impl UnorderedGroup {
             } else {
                 Some(line[0].to_string())
             };
-            let (refs, tags): (Vec<&str>, Vec<_>) =
-                line[1..].iter().partition(|x| RefID::new(x).is_some());
-            let ids: Vec<_> = refs.iter().filter_map(|x| RefID::new(x)).collect();
+            let ids = line[1].split_whitespace().map(|x| x.to_string()).collect();
             let group = Self { uid, ids };
-            let tags: Vec<_> = to_tags(&tags);
+            let tags = if line.len() > 2 {
+                to_tags(&line[2..])
+            } else {
+                vec![]
+            };
             Some((group, tags))
         }
     }
@@ -312,11 +351,16 @@ impl OrderedGroup {
             } else {
                 Some(line[0].to_string())
             };
-            let (refs, tags): (Vec<&str>, Vec<_>) =
-                line[1..].iter().partition(|x| RefID::new(x).is_some());
-            let ids: Vec<_> = refs.iter().filter_map(|x| RefID::new(x)).collect();
+            let ids: Vec<_> = line[1]
+                .split_whitespace()
+                .filter_map(|x| RefID::new(x))
+                .collect();
             let group = Self { oid, ids };
-            let tags: Vec<_> = to_tags(&tags);
+            let tags: Vec<_> = if line.len() > 2 {
+                to_tags(&line[2..])
+            } else {
+                vec![]
+            };
             Some((group, tags))
         }
     }
@@ -346,15 +390,25 @@ impl RefID {
         };
         Some(Self { direction, id })
     }
+    pub fn from(id: &str, is_forward: bool) -> Self {
+        Self {
+            id: id.to_string(),
+            direction: if is_forward {
+                Direction::Forward
+            } else {
+                Direction::Reverse
+            },
+        }
+    }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Direction {
     Forward,
     Reverse,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Position {
     pub pos: usize,
     pub is_last: bool,
@@ -370,6 +424,9 @@ impl Position {
             let is_last = false;
             seq.parse().ok().map(|pos| Self { pos, is_last })
         }
+    }
+    pub fn from(pos: usize, is_last: bool) -> Self {
+        Self { pos, is_last }
     }
 }
 
@@ -547,7 +604,7 @@ impl std::fmt::Display for UnorderedGroup {
             Some(res) => write!(f, "U\t{}\t", res)?,
             None => write!(f, "U\t*\t")?,
         };
-        let ids: Vec<_> = self.ids.iter().map(|id| format!("{}", id)).collect();
+        let ids: Vec<_> = self.ids.iter().map(|id| id.to_string()).collect();
         write!(f, "{}", ids.join(" "))
     }
 }
