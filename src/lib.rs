@@ -16,6 +16,9 @@ impl GFA {
             .collect();
         Self::from_records(inner)
     }
+    pub fn iter(&self) -> std::slice::Iter<'_, Record> {
+        self.inner.iter()
+    }
 }
 
 #[derive(Debug, Clone)]
