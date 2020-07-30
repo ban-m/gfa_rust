@@ -29,7 +29,7 @@ pub struct Record {
 
 impl Record {
     pub fn from_line(line: &str) -> Option<Self> {
-        let line: Vec<&str> = line.split("\t").collect();
+        let line: Vec<&str> = line.split('\t').collect();
         match line[0] {
             "H" => Header::new(&line[1..]).map(|(header, tags)| {
                 let content = Content::Header(header);
@@ -242,6 +242,7 @@ impl Edge {
             Some((edge, tags))
         }
     }
+    #[allow(clippy::too_many_arguments)]
     pub fn from(
         eid: Option<String>,
         sid1: RefID,
@@ -456,7 +457,7 @@ impl Alignment {
             }
             Some(Alignment::Cigar(Cigar { ops }))
         } else if seq.contains(',') {
-            let inner: Vec<i32> = seq.split(",").filter_map(|x| x.parse().ok()).collect();
+            let inner: Vec<i32> = seq.split(',').filter_map(|x| x.parse().ok()).collect();
             Some(Alignment::Trace(Trace { inner }))
         } else {
             None
