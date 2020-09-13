@@ -404,6 +404,12 @@ impl RefID {
             },
         }
     }
+    pub fn is_forward(&self) -> bool {
+        match self.direction {
+            Direction::Forward => true,
+            Direction::Reverse => false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
