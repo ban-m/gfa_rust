@@ -311,6 +311,30 @@ pub enum Group {
     Path(OrderedGroup),
 }
 
+impl Group {
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+    pub fn len(&self) -> usize {
+        match self {
+            Group::Set(ug) => ug.ids.len(),
+            Group::Path(og) => og.ids.len(),
+        }
+    }
+    pub fn set(&self) -> Option<&UnorderedGroup> {
+        match self {
+            Group::Set(ug) => Some(ug),
+            _ => None,
+        }
+    }
+    pub fn path(&self) -> Option<&OrderedGroup> {
+        match self {
+            Group::Path(og) => Some(og),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct UnorderedGroup {
     pub uid: Option<String>,
@@ -337,6 +361,9 @@ impl UnorderedGroup {
             Some((group, tags))
         }
     }
+    pub fn iter(&self) -> std::slice::Iter<'_, String> {
+        self.ids.iter()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -346,6 +373,9 @@ pub struct OrderedGroup {
 }
 
 impl OrderedGroup {
+    pub fn iter(&self) -> std::slice::Iter<'_, RefID> {
+        self.ids.iter()
+    }
     pub fn new(line: &[&str]) -> Option<(Self, Vec<SamTag>)> {
         if line.len() < 2 {
             None
