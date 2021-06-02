@@ -14,5 +14,3 @@
 **/pics
 .*
 !.gitignore
-venv
-**__*
