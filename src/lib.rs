@@ -19,6 +19,9 @@ impl GFA {
     pub fn iter(&self) -> std::slice::Iter<'_, Record> {
         self.inner.iter()
     }
+    pub fn iter_mut(&mut self) -> std::slice::IterMut<'_, Record> {
+        self.inner.iter_mut()
+    }
 }
 
 #[derive(Debug, Clone)]
