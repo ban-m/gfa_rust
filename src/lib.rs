@@ -375,6 +375,16 @@ pub struct SamTag {
     pub inner: String,
 }
 
+impl SamTag {
+    pub fn new(seq: String) -> Self {
+        if seq.chars().filter(|&x| x == ':').count() != 2 {
+            panic!("{} is invalid SamTag.", seq);
+        } else {
+            Self { inner: seq }
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct RefID {
     pub direction: Direction,
