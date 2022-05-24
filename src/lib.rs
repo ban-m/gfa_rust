@@ -54,6 +54,9 @@ impl std::convert::From<Vec<SamTag>> for SamTags {
     }
 }
 impl SamTags {
+    pub fn push(&mut self, tag: SamTag) {
+        self.0.push(tag);
+    }
     pub fn iter(&self) -> std::slice::Iter<'_, SamTag> {
         self.0.iter()
     }
