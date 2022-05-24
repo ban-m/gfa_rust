@@ -1,3 +1,25 @@
+//! A tiny library to handle GFA file.
+//! # Example
+//! To create a graph with two nodes and a connecting edge between them;
+//! ```rust
+//! let header = Content::Header(Header::default());
+//! let node1 = Content::Seg(Segment::from("seq1".to_string(), 1_000, None));
+//! let node2 = Content::Seg(Segment::from("seq2".to_string(), 1_000, None));
+//! let edge = Content::Edge(Edge::from(
+//!     None,
+//!     RefID::from("seq1", true),
+//!     RefID::from("seq2", true),
+//!     Position::from(1_000, false),
+//!     Position::from(1_000, true),
+//!     Position::from(0, false),
+//!     Position::from(0, false),
+//!     None,
+//! ));
+//! let records = [header, node1, node2, edge].map(|c| Record::from_contents(c, vec![]));
+//! GFA::from_records(records.to_vec());
+//!```
+//! Of course, this is rather messy. As human-friendly API, I write `Graph` module.
+pub mod graph;
 #[derive(Debug, Clone)]
 pub struct GFA {
     inner: Vec<Record>,
@@ -25,9 +47,37 @@ impl GFA {
 }
 
 #[derive(Debug, Clone)]
+pub struct SamTags(Vec<SamTag>);
+impl std::convert::From<Vec<SamTag>> for SamTags {
+    fn from(tags: Vec<SamTag>) -> Self {
+        SamTags(tags)
+    }
+}
+impl SamTags {
+    pub fn iter(&self) -> std::slice::Iter<'_, SamTag> {
+        self.0.iter()
+    }
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+    pub fn find(&self, key: &str) -> Option<(&str, &str)> {
+        self.0.iter().find_map(|tag| {
+            let mut tag = tag.inner.split(':');
+            if tag.next()? == key {
+                let val_type = tag.next()?;
+                let value = tag.next()?;
+                Some((val_type, value))
+            } else {
+                None
+            }
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct Record {
     pub content: Content,
-    pub tags: Vec<SamTag>,
+    pub tags: SamTags,
 }
 
 impl Record {
@@ -65,7 +115,7 @@ impl Record {
             _ => None,
         }
     }
-    pub fn from_contents(content: Content, tags: Vec<SamTag>) -> Self {
+    pub fn from_contents(content: Content, tags: SamTags) -> Self {
         Self { content, tags }
     }
 }
@@ -87,7 +137,7 @@ pub struct Header {
 }
 
 impl Header {
-    pub fn new(line: &[&str]) -> Option<(Self, Vec<SamTag>)> {
+    pub fn new(line: &[&str]) -> Option<(Self, SamTags)> {
         let (version, trace, rest) = match line {
             ["VN:Z:2.0", x, rest @ ..] if x.starts_with("TS:i:") => {
                 (Some("VN:Z:2.0".to_string()), Some(x.to_string()), rest)
@@ -110,12 +160,13 @@ impl std::default::Default for Header {
     }
 }
 
-fn to_tags(tags: &[&str]) -> Vec<SamTag> {
+fn to_tags(tags: &[&str]) -> SamTags {
     tags.iter()
         .map(|s| SamTag {
             inner: s.to_string(),
         })
-        .collect()
+        .collect::<Vec<_>>()
+        .into()
 }
 
 #[derive(Debug, Clone, Default)]
@@ -134,7 +185,7 @@ impl Segment {
             sequence,
         }
     }
-    pub fn new(line: &[&str]) -> Option<(Self, Vec<SamTag>)> {
+    pub fn new(line: &[&str]) -> Option<(Self, SamTags)> {
         if line.len() < 3 {
             None
         } else {
@@ -151,7 +202,7 @@ impl Segment {
             let tags = if line.len() > 3 {
                 to_tags(&line[3..])
             } else {
-                vec![]
+                vec![].into()
             };
             let segment = Self {
                 sid,
@@ -175,7 +226,7 @@ pub struct Fragment {
 }
 
 impl Fragment {
-    pub fn new(line: &[&str]) -> Option<(Self, Vec<SamTag>)> {
+    pub fn new(line: &[&str]) -> Option<(Self, SamTags)> {
         if line.len() < 7 {
             None
         } else {
@@ -195,7 +246,7 @@ impl Fragment {
             let tags = if line.len() > 7 {
                 to_tags(&line[7..])
             } else {
-                vec![]
+                vec![].into()
             };
             Some((frag, tags))
         }
@@ -215,7 +266,7 @@ pub struct Edge {
 }
 
 impl Edge {
-    pub fn new(line: &[&str]) -> Option<(Self, Vec<SamTag>)> {
+    pub fn new(line: &[&str]) -> Option<(Self, SamTags)> {
         if line.len() < 8 {
             None
         } else {
@@ -240,7 +291,7 @@ impl Edge {
             let tags = if line.len() > 8 {
                 to_tags(&line[8..])
             } else {
-                vec![]
+                vec![].into()
             };
             Some((edge, tags))
         }
@@ -279,7 +330,7 @@ pub struct Gap {
 }
 
 impl Gap {
-    pub fn new(line: &[&str]) -> Option<(Self, Vec<SamTag>)> {
+    pub fn new(line: &[&str]) -> Option<(Self, SamTags)> {
         if line.len() < 5 {
             None
         } else {
@@ -301,7 +352,7 @@ impl Gap {
             let tags = if line.len() > 5 {
                 to_tags(&line[5..])
             } else {
-                vec![]
+                vec![].into()
             };
             Some((gap, tags))
         }
@@ -345,7 +396,7 @@ pub struct UnorderedGroup {
 }
 
 impl UnorderedGroup {
-    pub fn new(line: &[&str]) -> Option<(Self, Vec<SamTag>)> {
+    pub fn new(line: &[&str]) -> Option<(Self, SamTags)> {
         if line.len() < 2 {
             None
         } else {
@@ -359,7 +410,7 @@ impl UnorderedGroup {
             let tags = if line.len() > 2 {
                 to_tags(&line[2..])
             } else {
-                vec![]
+                vec![].into()
             };
             Some((group, tags))
         }
@@ -379,7 +430,7 @@ impl OrderedGroup {
     pub fn iter(&self) -> std::slice::Iter<'_, RefID> {
         self.ids.iter()
     }
-    pub fn new(line: &[&str]) -> Option<(Self, Vec<SamTag>)> {
+    pub fn new(line: &[&str]) -> Option<(Self, SamTags)> {
         if line.len() < 2 {
             None
         } else {
@@ -393,10 +444,10 @@ impl OrderedGroup {
                 .filter_map(|x| RefID::new(x))
                 .collect();
             let group = Self { oid, ids };
-            let tags: Vec<_> = if line.len() > 2 {
+            let tags = if line.len() > 2 {
                 to_tags(&line[2..])
             } else {
-                vec![]
+                vec![].into()
             };
             Some((group, tags))
         }
@@ -409,6 +460,15 @@ pub struct SamTag {
 }
 
 impl SamTag {
+    pub fn key(&self) -> Option<&str> {
+        self.inner.split(':').next()
+    }
+    pub fn value_type(&self) -> Option<&str> {
+        self.inner.split(':').nth(1)
+    }
+    pub fn value(&self) -> Option<&str> {
+        self.inner.split(':').nth(2)
+    }
     pub fn new(seq: String) -> Self {
         if seq.chars().filter(|&x| x == ':').count() != 2 {
             panic!("{} is invalid SamTag.", seq);

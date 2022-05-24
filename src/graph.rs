@@ -1,0 +1,45 @@
+// //! Graph module for GFA format.
+// //! ```rust
+// //! let mut graph = Graph::new();
+// //! let node1 = Node::new("seq1",1_000,None);
+// //! let node2 = Node::new("seq2",2_000,None);
+// //! graph.add_node(node1);
+// //! graph.add_node(node2);
+// //! graph.add_edge((0,true,true),(1,true,false));
+// //! let gfa = graph.to_gfa();
+// //! ```
+// //! If you want to encode some alignment information between nodes, use `add_alignment_by_idx`.
+
+// use std::collections::HashSet;
+// #[derive(Debug, Clone)]
+// pub struct Graph {
+//     pub nodes: Vec<AsmNode>,
+//     pub edges: Vec<AsmEdge>,
+//     pub groups: Vec<AsmGroup>,
+// }
+
+// impl Graph {
+//     pub fn new() -> Self {
+//         Self {
+//             nodes: vec![],
+//             edges: vec![],
+//             groups: vec![],
+//         }
+//     }
+// }
+
+// #[derive(Debug, Clone)]
+// pub struct AsmNode {
+//     pub tags: Vec<super::SamTag>,
+// }
+
+// #[derive(Debug, Clone)]
+// pub struct AsmEdge {
+//     pub tags: Vec<super::SamTag>,
+// }
+
+// #[derive(Debug, Clone)]
+// pub struct AsmGroup {
+//     nodes: HashSet<usize>,
+//     edges: HashSet<(usize, usize)>,
+// }
