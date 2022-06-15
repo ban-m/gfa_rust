@@ -18,7 +18,6 @@
 //! let records = [header, node1, node2, edge].map(|c| Record::from_contents(c, vec![]));
 //! GFA::from_records(records.to_vec());
 //!```
-//! Of course, this is rather messy. As human-friendly API, I write `Graph` module.
 pub mod graph;
 #[derive(Debug, Clone)]
 pub struct GFA {
